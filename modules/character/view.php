@@ -14,11 +14,20 @@ if($server->isRenewal) {
 	$fromTables = array("{$server->charMapDatabase}.item_db", "{$server->charMapDatabase}.item_db2");
 	$mobdb = array("mob_db","mob_db2");
 }
+
+$mobDBExist0 = "SHOW tables like '{$mobdb[0]}'";
+$sth = $server->connection->getStatement($mobDBExist0);
+$sth->execute();
+$mobDBExist0 = $sth->fetch();
+
+$mobDBExist1 = "SHOW tables like '{$mobdb[1]}'";
+$sth = $server->connection->getStatement($mobDBExist1);
+$sth->execute();
+$mobDBExist1 = $sth->fetch();
+
 $tableName = "{$server->charMapDatabase}.items";
 $tempTable = new Flux_TemporaryTable($server->connection, $tableName, $fromTables);
-
 $charID = $params->get('id');
-
 $col  = "ch.char_id, ch.account_id, ch.char_num, ch.name AS char_name, ch.class AS char_class, ch.base_level AS char_base_level, ";
 $col .= "ch.job_level AS char_job_level, ch.base_exp AS char_base_exp, ch.job_exp AS char_job_exp, ch.zeny AS char_zeny, ";
 $col .= "ch.str AS char_str, ch.agi AS char_agi, ch.vit AS char_vit, ";
@@ -31,11 +40,7 @@ $col .= "partner.name AS partner_name, partner.char_id AS partner_id, ";
 $col .= "mother.name AS mother_name, mother.char_id AS mother_id, ";
 $col .= "father.name AS father_name, father.char_id AS father_id, ";
 $col .= "child.name AS child_name, child.char_id AS child_id, ";
-$col .= "guild.guild_id, guild.name AS guild_name, ";
-if(Flux::config('EmblemUseWebservice'))
-	$col .= "guild_emblems.file_data as guild_emblem_len, ";
-else
-	$col .= "guild.emblem_len as guild_emblem_len, ";
+$col .= "guild.guild_id, guild.name AS guild_name, guild.emblem_len AS guild_emblem_len, ";
 $col .= "guild_position.name AS guild_position, IFNULL(guild_position.exp_mode, 0) AS guild_tax, ";
 $col .= "party.name AS party_name, party.leader_char AS party_leader_id, party_leader.name AS party_leader_name, ";
 
@@ -46,7 +51,13 @@ $col .= "homun.hp AS homun_hp, homun.max_hp As homun_max_hp, homun.sp AS homun_s
 $col .= "homun.skill_point AS homun_skill_point, homun.alive AS homun_alive, ";
 
 $col .= "pet.class AS pet_class, pet.name AS pet_name, pet.level AS pet_level, pet.intimate AS pet_intimacy, ";
-$col .= "pet.hungry AS pet_hungry, pet_mob.kName AS pet_mob_name, pet_mob2.kName AS pet_mob_name2, ";
+$col .= "pet.hungry AS pet_hungry, ";
+
+if ($mobDBExist0)
+	$col .= "pet_mob.kName AS pet_mob_name, ";
+
+if ($mobDBExist1)
+	$col .= "pet_mob2.kName AS pet_mob_name2, ";
 
 $col .= "IFNULL(reg.value, 0) AS death_count";
 
@@ -64,11 +75,14 @@ $sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`party` ON ch.party_id = par
 $sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`char` AS party_leader ON party.leader_char = party_leader.char_id ";
 $sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`homunculus` AS homun ON ch.homun_id = homun.homun_id ";
 $sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`pet` ON ch.pet_id = pet.pet_id ";
-$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`".$mobdb[0]."` AS pet_mob ON pet_mob.ID = pet.class ";
-$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`".$mobdb[1]."` AS pet_mob2 ON pet_mob2.ID = pet.class ";
+
+if ($mobDBExist0)
+	$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`".$mobdb[0]."` AS pet_mob ON pet_mob.ID = pet.class ";
+
+if ($mobDBExist1)
+	$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`".$mobdb[1]."` AS pet_mob2 ON pet_mob2.ID = pet.class ";
+
 $sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`char_reg_num` AS reg ON reg.char_id = ch.char_id AND reg.key = 'PC_DIE_COUNTER' ";
-if(Flux::config('EmblemUseWebservice'))
-	$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`guild_emblems` ON `guild_emblems`.guild_id = ch.guild_id ";	
 $sql .= "WHERE ch.char_id = ?";
 
 $sth  = $server->connection->getStatement($sql);
@@ -80,7 +94,7 @@ if ($char->pet_mob_name2) {
 	$char->pet_mob_name = $char->pet_mob_name2;
 }
 
-if ($char && $char->char_account_id == $session->account->account_id) {
+if ($char && $session->isMine($char->char_account_id)) {
 	$isMine = true;
 }
 else {
@@ -90,20 +104,13 @@ else {
 if (!$isMine && !$auth->allowedToViewCharacter) {
 	$this->deny();
 }
-
 if ($char) {
 	$title = "Viewing Character ({$char->char_name})";
 	
 	$sql  = "SELECT fr.char_id, fr.name, fr.class, fr.base_level, fr.job_level, ";
-	$sql .= "guild.guild_id, guild.name AS guild_name, fr.online, ";
-	if(Flux::config('EmblemUseWebservice'))
-		$sql .= "guild_emblems.file_data as guild_emblem_len ";
-	else
-		$sql .= "guild.emblem_len as guild_emblem_len ";
+	$sql .= "guild.guild_id, guild.name AS guild_name, guild.emblem_len AS guild_emblem_len, fr.online ";
 	$sql .= "FROM {$server->charMapDatabase}.`char` AS fr ";
 	$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.guild ON guild.guild_id = fr.guild_id ";
-	if(Flux::config('EmblemUseWebservice'))
-		$sql .= "LEFT JOIN {$server->charMapDatabase}.`guild_emblems` ON `guild_emblems`.guild_id = fr.guild_id ";	
 	$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.friends ON friends.friend_id = fr.char_id ";
 	$sql .= "WHERE friends.char_id = ? ORDER BY fr.name ASC";
 	$sth  = $server->connection->getStatement($sql);
@@ -113,15 +120,9 @@ if ($char) {
 	
 	if ($char->party_leader_id) {
 		$sql  = "SELECT p.char_id, p.name, p.class, p.base_level, p.job_level, ";
-		$sql .= "guild.guild_id, guild.name AS guild_name, p.online, ";
-		if(Flux::config('EmblemUseWebservice'))
-			$sql .= "guild_emblems.file_data as guild_emblem_len ";
-		else
-			$sql .= "guild.emblem_len as guild_emblem_len ";
+		$sql .= "guild.guild_id, guild.name AS guild_name, p.online ";
 		$sql .= "FROM {$server->charMapDatabase}.`char` AS p ";
 		$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.guild ON guild.guild_id = p.guild_id ";
-		if(Flux::config('EmblemUseWebservice'))
-			$sql .= "LEFT OUTER JOIN {$server->charMapDatabase}.`guild_emblems` ON `guild_emblems`.guild_id = p.guild_id ";	
 		$sql .= "WHERE p.party_id = ? AND p.char_id != ? ORDER BY p.name ASC";
 		$sth  = $server->connection->getStatement($sql);
 		

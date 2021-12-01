@@ -66,15 +66,14 @@ class Flux_LoginServer extends Flux_BaseServer {
 	 */
 	public function isAuth($username, $password)
 	{
-		
 		if (trim($username) == '' || trim($password) == '') {
 			return false;
 		}
 
-     	if ($this->config->get('UseMD5')) {
+		if ($this->config->get('UseMD5')) {
 			$password = Flux::hashPassword($password);
 		}
-        
+
 		$sql  = "SELECT userid FROM {$this->loginDatabase}.login WHERE sex != 'S' AND group_id >= 0 ";
 		if ($this->config->getNoCase()) {
 			$sql .= 'AND LOWER(userid) = LOWER(?) ';
@@ -85,7 +84,7 @@ class Flux_LoginServer extends Flux_BaseServer {
 		$sql .= "AND user_pass = ? LIMIT 1";
 		$sth  = $this->connection->getStatement($sql);
 		$sth->execute(array($username, $password));
-		
+
 		$res = $sth->fetch();
 		if ($res) {
 			return true;
@@ -94,11 +93,11 @@ class Flux_LoginServer extends Flux_BaseServer {
 			return false;
 		}
 	}
-	
+
 	/**
 	 *
 	 */
-	public function register($username, $password, $confirmPassword, $email,$email2, $gender, $birthdate, $securityCode)
+	public function register($username, $password, $confirmPassword, $birthDate, $securityCode, $email, $email2, $gender)
 	{
 		if (preg_match('/[^' . Flux::config('UsernameAllowedChars') . ']/', $username)) {
 			throw new Flux_RegisterError('Invalid character(s) used in username', Flux_RegisterError::INVALID_USERNAME);
@@ -145,7 +144,7 @@ class Flux_LoginServer extends Flux_BaseServer {
 		elseif (!in_array(strtoupper($gender), array('M', 'F'))) {
 			throw new Flux_RegisterError('Invalid gender', Flux_RegisterError::INVALID_GENDER);
 		}
-		elseif (($birthdatestamp = strtotime($birthdate)) === false || date('Y-m-d', $birthdatestamp) != $birthdate) {
+		elseif (($birthdatestamp = strtotime($birthDate)) === false || date('Y-m-d', $birthdatestamp) != $birthDate) {
 			throw new Flux_RegisterError('Invalid birthdate', Flux_RegisterError::INVALID_BIRTHDATE);
 		}
 		elseif (Flux::config('UseCaptcha')) {
@@ -179,7 +178,7 @@ class Flux_LoginServer extends Flux_BaseServer {
 			throw new Flux_RegisterError('Username is already taken', Flux_RegisterError::USERNAME_ALREADY_TAKEN);
 		}
 		
-		if (!Flux::config('AllowDuplicateEmails')) {
+		if (!Flux::config('AllowDuplicateEmails') && !Flux::config('MasterAccount')) {
 			$sql = "SELECT email FROM {$this->loginDatabase}.login WHERE email = ? LIMIT 1";
 			$sth = $this->connection->getStatement($sql);
 			$sth->execute(array($email));
@@ -216,7 +215,21 @@ class Flux_LoginServer extends Flux_BaseServer {
 			return false;
 		}
 	}
-	
+
+	public function registerGameAccount($account, $username, $password, $confirmPassword, $gender, $securityCode)
+	{
+		return self::register(
+			$username,
+			$password,
+			$confirmPassword,
+			$account->birth_date,
+			$securityCode,
+			$account->email,
+			$account->email,
+			$gender
+		);
+	}
+
 	/**
 	 *
 	 */
@@ -249,7 +262,7 @@ class Flux_LoginServer extends Flux_BaseServer {
 		$sql  = "INSERT INTO {$this->loginDatabase}.$table (account_id, banned_by, ban_type, ban_until, ban_date, ban_reason) ";
 		$sql .= "VALUES (?, ?, 2, '9999-12-31 23:59:59', NOW(), ?)";
 		$sth  = $this->connection->getStatement($sql);
-		
+
 		if ($sth->execute(array($accountID, $bannedBy, $banReason))) {
 			$sql  = "UPDATE {$this->loginDatabase}.login SET state = 5, unban_time = 0 WHERE account_id = ?";
 			$sth  = $this->connection->getStatement($sql);
@@ -259,7 +272,7 @@ class Flux_LoginServer extends Flux_BaseServer {
 			return false;
 		}
 	}
-	
+
 	/**
 	 *
 	 */
@@ -285,7 +298,7 @@ class Flux_LoginServer extends Flux_BaseServer {
 			return false;
 		}
 	}
-	
+
 	/**
 	 *
 	 */

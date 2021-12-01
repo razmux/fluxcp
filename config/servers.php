@@ -11,11 +11,11 @@ return array(
 			//'Port'       => 3306,
 			//'Encoding'   => 'utf8', // Connection encoding -- use whatever here your MySQL tables collation is.
 			'Convert'    => 'utf8',
-				// -- 'Convert' option only works when 'Encoding' option is specified and iconv (http://php.net/iconv) is available.
-				// -- It specifies the encoding to convert your MySQL data to on the website (most likely needs to be utf8)
+			// -- 'Convert' option only works when 'Encoding' option is specified and iconv (http://php.net/iconv) is available.
+			// -- It specifies the encoding to convert your MySQL data to on the website (most likely needs to be utf8)
 			'Hostname'   => '127.0.0.1',
-			'Username'   => 'ragnarok',
-			'Password'   => 'ragnarok',
+			'Username'   => 'homestead',
+			'Password'   => 'secret',
 			'Database'   => 'ragnarok',
 			'Persistent' => true,
 			'Timezone'   => null // Example: '+0:00' is UTC.
@@ -32,8 +32,8 @@ return array(
 			//'Port'       => 3306,
 			//'Encoding'   => null, // Connection encoding -- use whatever here your MySQL tables collation is.
 			'Convert'    => 'utf8',
-				// -- 'Convert' option only works when 'Encoding' option is specified and iconv (http://php.net/iconv) is available.
-				// -- It specifies the encoding to convert your MySQL data to on the website (most likely needs to be utf8)
+			// -- 'Convert' option only works when 'Encoding' option is specified and iconv (http://php.net/iconv) is available.
+			// -- It specifies the encoding to convert your MySQL data to on the website (most likely needs to be utf8)
 			'Hostname'   => '127.0.0.1',
 			'Username'   => 'ragnarok',
 			'Password'   => 'ragnarok',
@@ -53,7 +53,7 @@ return array(
 		'CharMapServers' => array(
 			array(
 				'ServerName'      => 'FluxRO',
-				'Renewal'         => true,
+				'Renewal'         => false,
 				'MaxCharSlots'    => 9,
 				'DateTimezone'    => null, // Specifies game server's timezone for this char/map pair. (See: http://php.net/timezones)
 				//'ResetDenyMaps'   => 'sec_pri', // Defaults to 'sec_pri'. This value can be an array of map names.

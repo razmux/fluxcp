@@ -435,7 +435,9 @@ class Flux_Template {
 				$module = array_key_exists('module', $menuItem) ? $menuItem['module'] : false;
 				$action = array_key_exists('action', $menuItem) ? $menuItem['action'] : $defaultAction;
 				$exturl = array_key_exists('exturl', $menuItem) ? $menuItem['exturl'] : null;
-
+				$masterAccount = array_key_exists('master', $menuItem) ? $menuItem['master'] : null;
+				if ($masterAccount === false && Flux::config('MasterAccount')) continue;
+				if ($masterAccount === true && !Flux::config('MasterAccount')) continue;
 				if ($adminMenus) {
 					if ($auth->actionAllowed($module, $action) && $auth->config("modules.$module.$action") >= $adminMenuLevel) {
 						$allowedItems[] = array(
@@ -895,7 +897,34 @@ class Flux_Template {
 		$paginator = new Flux_Paginator($total, $this->url($this->moduleName, $this->actionName, array('_host' => false)), $options);
 		return $paginator;
 	}
-	
+
+	/**
+	 * Link to a master account view page.
+	 *
+	 * @param int $userId
+	 * @param string $text
+	 * @return mixed
+	 * @access public
+	 */
+	public function linkToMasterAccount($userId, $text)
+	{
+		if ($userId) {
+			$url = $this->url('master', 'view', array('id' => $userId));
+			return sprintf(
+				'<a href="%s" class="link-to-account">%s</a>',
+				$url, htmlspecialchars($this->getMasterId($text))
+			);
+		}
+		else {
+			return false;
+		}
+	}
+
+	public function getMasterId($userId)
+    {
+        return str_pad($userId,10 - strlen($userId), 0, STR_PAD_LEFT);
+    }
+
 	/**
 	 * Link to an account view page.
 	 *
@@ -1142,6 +1171,16 @@ class Flux_Template {
 	{
 		$dispatcher = Flux_Dispatcher::getInstance();
 		$dispatcher->loginRequired($this->basePath, $message);
+		$this->gameAccountRequired();
+	}
+
+	/**
+	 * Redirect to create game account page if the user don't have any game account.
+	 */
+	public function gameAccountRequired($message = null)
+	{
+		$dispatcher = Flux_Dispatcher::getInstance();
+		$dispatcher->gameAccountRequired($this->basePath, $message);
 	}
 	
 	/**
@@ -1372,15 +1411,7 @@ class Flux_Template {
 	{
 		$path = sprintf(FLUX_DATA_DIR."/items/icons/".Flux::config('ItemIconNameFormat'), $itemID);
 		$link = preg_replace('&/{2,}&', '/', "{$this->basePath}/$path");
-		
-		if(Flux::config('DivinePrideIntegration') && !file_exists($path)) {
-			$download_link = "https://static.divine-pride.net/images/items/item/$itemID.png";
-			$data = get_headers($download_link, true);
-			$size = isset($data['Content-Length']) ? (int)$data['Content-Length'] : 0;
-			if($size != 0)
-				file_put_contents(sprintf(FLUX_DATA_DIR."/items/icons/".Flux::config('ItemIconNameFormat'), $itemID), file_get_contents($download_link));
-		}
-        return file_exists($path) ? $link : false;
+		return file_exists($path) ? $link : false;
 	}
 	
 	/**
@@ -1390,15 +1421,7 @@ class Flux_Template {
 	{
 		$path = sprintf(FLUX_DATA_DIR."/items/images/".Flux::config('ItemImageNameFormat'), $itemID);
 		$link = preg_replace('&/{2,}&', '/', "{$this->basePath}/$path");
-		
-		if(Flux::config('DivinePrideIntegration') && !file_exists($path)) {
-			$download_link = "https://static.divine-pride.net/images/items/collection/$itemID.png";
-			$data = get_headers($download_link, true);
-			$size = isset($data['Content-Length']) ? (int)$data['Content-Length'] : 0;
-			if($size != 0)
-				file_put_contents(sprintf(FLUX_DATA_DIR."/items/images/".Flux::config('ItemImageNameFormat'), $itemID), file_get_contents($download_link));
-		}
-        return file_exists($path) ? $link : false;
+		return file_exists($path) ? $link : false;
 	}
 
  	/**
@@ -1408,15 +1431,7 @@ class Flux_Template {
 	{
 		$path = sprintf(FLUX_DATA_DIR."/monsters/".Flux::config('MonsterImageNameFormat'), $monsterID);
 		$link = preg_replace('&/{2,}&', '/', "{$this->basePath}/$path");
-		
-		if(Flux::config('DivinePrideIntegration') && !file_exists($path)) {
-			$download_link = "https://static.divine-pride.net/images/mobs/png/$monsterID.png";
-			$data = get_headers($download_link, true);
-			$size = isset($data['Content-Length']) ? (int)$data['Content-Length'] : 0;
-			if($size != 0)
-				file_put_contents(sprintf(FLUX_DATA_DIR."/monsters/".Flux::config('MonsterImageNameFormat'), $monsterID), file_get_contents($download_link));
-		}
-        return file_exists($path) ? $link : false;
+		return file_exists($path) ? $link : false;
 	}
 	
 	/**
